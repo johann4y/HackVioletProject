@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { GoogleMap, Marker } from "@react-google-maps/api";
-import { auth } from '../lib/firebase.js';
+import { GoogleMap, Marker, InfoWindow } from "@react-google-maps/api";
+import { auth } from "../lib/firebase.js";
 import axios from "axios";
 
 const containerStyle = {
@@ -19,13 +19,14 @@ export default function Map({ isLoaded, mapKey }) {
   const [description, setDescription] = useState("");
   const [userPins, setUserPins] = useState([]);
   const [username, setUsername] = useState(auth.currentUser?.email);
+  const [activeMarker, setActiveMarker] = useState(null); // Tracks the currently hovered marker
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
         setUsername(user.email);
         fetchPins();
-        } else {
+      } else {
         setUsername(null);
       }
     });
@@ -131,7 +132,19 @@ export default function Map({ isLoaded, mapKey }) {
             key={marker._id}
             position={marker.position}
             icon={blueMarkerIcon}
-          />
+            onMouseOver={() => setActiveMarker(marker)} // Set active marker on hover
+            onMouseOut={() => setActiveMarker(null)} // Reset active marker when mouse leaves
+          >
+            {activeMarker === marker && (
+              <InfoWindow position={marker.position} onCloseClick={() => setActiveMarker(null)}>
+                <div>
+                  <p><strong>Description:</strong> {marker.description}</p>
+                  <p><strong>Severity:</strong> {marker.severity}</p>
+                  <p><strong>Tags:</strong> {marker.tags.join(", ")}</p>
+                </div>
+              </InfoWindow>
+            )}
+          </Marker>
         ))}
         {newMarker && <Marker position={newMarker.position} />}
       </GoogleMap>
