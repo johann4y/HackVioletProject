@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { GoogleMap, Marker, InfoWindow } from "@react-google-maps/api";
+import { GoogleMap, Marker } from "@react-google-maps/api";
 import { auth } from '../lib/firebase.js';
 import axios from "axios";
 
@@ -17,7 +17,6 @@ export default function Map({ isLoaded, mapKey }) {
   const [selectedTags, setSelectedTags] = useState([]);
   const [severity, setSeverity] = useState(0);
   const [description, setDescription] = useState("");
-  const [activeMarker, setActiveMarker] = useState(null);
   const [userPins, setUserPins] = useState([]);
   const [username, setUsername] = useState(auth.currentUser?.email);
 
@@ -26,15 +25,13 @@ export default function Map({ isLoaded, mapKey }) {
       if (user) {
         setUsername(user.email);
         fetchPins();
-      } else {
+        } else {
         setUsername(null);
       }
     });
 
     return () => unsubscribe();
   }, []);
-
-
 
   const fetchPins = async () => {
     try {
@@ -122,41 +119,22 @@ export default function Map({ isLoaded, mapKey }) {
   };
 
   return (
-    <div className=" flex flex-col items-center p-4">
-      
-          <GoogleMap
-            mapContainerStyle={containerStyle}
-            center={currentLocation}
-            zoom={15}
-            onClick={handleMapClick}
-          >
-            {markers.map((marker) => (
-              <Marker
-                key={marker._id}
-                position={marker.position}
-                onMouseOver={() => setActiveMarker(marker)}
-                onMouseOut={() => setActiveMarker(null)}
-                icon={blueMarkerIcon}
-              >
-                {activeMarker && (
-              <InfoWindow
-                position={activeMarker.position}
-                onCloseClick={() => setActiveMarker(null)}
-                
-              >
-                <div className="text-black">
-                  <p><strong>Description:</strong> {activeMarker.description}</p>
-                  <p><strong>Severity:</strong> {activeMarker.severity}</p>
-                  <p><strong>Tags:</strong> {activeMarker.tags.join(", ")}</p>
-                </div>
-              </InfoWindow>
-            )}
-                </Marker>
-            ))}
-            {newMarker && <Marker position={newMarker.position} />}
-            
-          </GoogleMap>
-        
+    <div className="flex flex-col items-center p-4">
+      <GoogleMap
+        mapContainerStyle={containerStyle}
+        center={currentLocation}
+        zoom={15}
+        onClick={handleMapClick}
+      >
+        {markers.map((marker) => (
+          <Marker
+            key={marker._id}
+            position={marker.position}
+            icon={blueMarkerIcon}
+          />
+        ))}
+        {newMarker && <Marker position={newMarker.position} />}
+      </GoogleMap>
 
       {/* Marker Details Section */}
       <div className="mt-4 w-full max-w-md">
@@ -228,35 +206,41 @@ export default function Map({ isLoaded, mapKey }) {
         >
           Submit
         </button>
-
-        <button
-          onClick={fetchPins}
-          className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-4"
-        >
-          Refresh Pins
-        </button>
       </div>
 
+      {/* Your Pins Section */}
       <div className="mt-8 w-full max-w-md">
         <h2 className="text-xl font-bold mb-4">Your Pins</h2>
-        {userPins.map((pin) => (
-          <div
-            key={pin._id}
-            className="flex justify-between items-center p-4 border-b"
-          >
-            <div>
-              <p><strong>Description:</strong> {pin.description}</p>
-              <p><strong>Severity:</strong> {pin.severity}</p>
-              <p><strong>Tags:</strong> {pin.tags.join(", ")}</p>
-            </div>
-            <button
-              onClick={() => handleDeletePin(pin._id)}
-              className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded"
-            >
-              Delete
-            </button>
-          </div>
-        ))}
+        <div className="bg-white rounded-lg shadow-md border border-gray-300 p-4">
+          {userPins.length === 0 ? (
+            <p className="text-gray-500">No pins created yet.</p>
+          ) : (
+            userPins.map((pin) => (
+              <div
+                key={pin._id}
+                className="flex justify-between items-center p-4 border-b last:border-none"
+              >
+                <div>
+                  <p>
+                    <strong>Description:</strong> {pin.description}
+                  </p>
+                  <p>
+                    <strong>Severity:</strong> {pin.severity}
+                  </p>
+                  <p>
+                    <strong>Tags:</strong> {pin.tags.join(", ")}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleDeletePin(pin._id)}
+                  className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded"
+                >
+                  Delete
+                </button>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
