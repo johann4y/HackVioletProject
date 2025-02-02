@@ -152,7 +152,7 @@ export default function Map({ isLoaded, mapKey }) {
       {/* Marker Details Section */}
       <div className="mt-4 w-full max-w-md">
         <div className="flex gap-4 mb-4">
-          {["SA", "Harassment", "Sketchy"].map((tag) => (
+          {["Assault", "Harassment", "Sketchy", "Crime", "Other"].map((tag) => (
             <button
               key={tag}
               onClick={() => newMarker && toggleTag(tag)}
@@ -218,6 +218,9 @@ export default function Map({ isLoaded, mapKey }) {
           disabled={!newMarker}
         >
           Submit
+        </button>
+        <button onClick={fetchPins} className="w-full bg-gray-500 text-white font-bold py-2 px-4 rounded mt-4">
+          Refresh
         </button>
       </div>
 
