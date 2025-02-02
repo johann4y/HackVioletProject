@@ -1,6 +1,7 @@
 import { auth } from '../lib/firebase.js';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import MapProvider from '@/MapProvider.jsx';
 import "../styles/globals.css";
 
 function MyApp({ Component, pageProps }) {
@@ -18,7 +19,15 @@ function MyApp({ Component, pageProps }) {
     return () => unsubscribe();
   }, []);
 
-  return <Component {...pageProps} />;
+  return (
+
+
+
+  <MapProvider>
+  <Component {...pageProps} />
+  </MapProvider>
+  
+  );
 }
 
 export default MyApp;

@@ -1,21 +1,56 @@
 import React, { useState, useEffect } from "react";
-import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api";
+import { GoogleMap, Marker, InfoWindow } from "@react-google-maps/api";
+import { auth } from '../lib/firebase.js';
+import axios from "axios";
 
 const containerStyle = {
   width: "100%",
   height: "400px",
 };
 
-export default function Map() {
+const blueMarkerIcon = "http://maps.google.com/mapfiles/ms/icons/blue-dot.png";
+
+export default function Map({ isLoaded, mapKey }) {
   const [currentLocation, setCurrentLocation] = useState({ lat: 0, lng: 0 });
-  const [markers, setMarkers] = useState([]); // Stores all markers
-  const [newMarker, setNewMarker] = useState(null); // For the new marker being added
-  const [selectedTags, setSelectedTags] = useState([]); // Stores the selected tags (multiple)
-  const [severity, setSeverity] = useState(0); // Stores the selected severity
-  const [description, setDescription] = useState(""); // Stores the description
+  const [markers, setMarkers] = useState([]);
+  const [newMarker, setNewMarker] = useState(null);
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [severity, setSeverity] = useState(0);
+  const [description, setDescription] = useState("");
+  const [activeMarker, setActiveMarker] = useState(null);
+  const [userPins, setUserPins] = useState([]);
+  const [username, setUsername] = useState(auth.currentUser?.email);
 
   useEffect(() => {
-    // Get user's current location
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        setUsername(user.email);
+        fetchPins();
+      } else {
+        setUsername(null);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+
+
+  const fetchPins = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/api/pins");
+      const transformedMarkers = response.data.map((pin) => ({
+        ...pin,
+        position: { lat: pin.latitude, lng: pin.longitude },
+      }));
+      setMarkers(transformedMarkers);
+      setUserPins(transformedMarkers.filter((pin) => pin.createdBy === username));
+    } catch (error) {
+      console.error("Error fetching pins:", error);
+    }
+  };
+
+  useEffect(() => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
@@ -27,9 +62,6 @@ export default function Map() {
     );
   }, []);
 
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-
-  // Handle map click to add a marker
   const handleMapClick = (event) => {
     setNewMarker({
       position: { lat: event.latLng.lat(), lng: event.latLng.lng() },
@@ -42,7 +74,6 @@ export default function Map() {
     setDescription("");
   };
 
-  // Handle toggling of tags
   const toggleTag = (tag) => {
     if (selectedTags.includes(tag)) {
       setSelectedTags(selectedTags.filter((t) => t !== tag));
@@ -51,56 +82,86 @@ export default function Map() {
     }
   };
 
-  // Handle form submission
-  const handleSubmit = () => {
-    if (newMarker) {
-      setMarkers((prev) => [
-        ...prev,
-        {
-          ...newMarker,
-          tags: selectedTags,
-          severity,
-          description,
-        },
-      ]);
-      // Clear the new marker and inputs
+  const handleSubmit = async () => {
+    if (!newMarker || !description || severity === 0 || selectedTags.length === 0) {
+      alert("Please fill all fields before submitting.");
+      return;
+    }
+
+    try {
+      const pinData = {
+        latitude: newMarker.position.lat,
+        longitude: newMarker.position.lng,
+        createdBy: username,
+        tags: selectedTags,
+        severity,
+        description,
+      };
+      const response = await axios.post("http://localhost:5000/api/pins", pinData);
+      setMarkers((prev) => [...prev, response.data]);
+      setUserPins((prev) => [...prev, response.data]);
+      fetchPins();
       setNewMarker(null);
       setSelectedTags([]);
       setSeverity(0);
       setDescription("");
+    } catch (error) {
+      console.error("Error creating pin:", error);
     }
   };
 
-  // Handle input changes for description
-  const handleDescriptionChange = (e) => {
-    setDescription(e.target.value);
+  const handleDeletePin = async (pinId) => {
+    try {
+      await axios.delete(`http://localhost:5000/api/pins/${pinId}`, { data: { createdBy: username } });
+      setMarkers((prev) => prev.filter((pin) => pin._id !== pinId));
+      setUserPins((prev) => prev.filter((pin) => pin._id !== pinId));
+      fetchPins();
+    } catch (error) {
+      console.error("Error deleting pin:", error);
+    }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center p-4">
-      {/* Google Map */}
-      <LoadScript googleMapsApiKey={apiKey}>
-        <GoogleMap
-          mapContainerStyle={containerStyle}
-          center={currentLocation}
-          zoom={15}
-          onClick={handleMapClick} // Handle clicks to add markers
-        >
-          {/* Render Existing Markers */}
-          {markers.map((marker, index) => (
-            <Marker key={index} position={marker.position} />
-          ))}
-
-          {/* New Marker (Not Yet Submitted) */}
-          {newMarker && <Marker position={newMarker.position} />}
-        </GoogleMap>
-      </LoadScript>
+    <div className=" flex flex-col items-center p-4">
+      
+          <GoogleMap
+            mapContainerStyle={containerStyle}
+            center={currentLocation}
+            zoom={15}
+            onClick={handleMapClick}
+          >
+            {markers.map((marker) => (
+              <Marker
+                key={marker._id}
+                position={marker.position}
+                onMouseOver={() => setActiveMarker(marker)}
+                onMouseOut={() => setActiveMarker(null)}
+                icon={blueMarkerIcon}
+              >
+                {activeMarker && (
+              <InfoWindow
+                position={activeMarker.position}
+                onCloseClick={() => setActiveMarker(null)}
+                
+              >
+                <div className="text-black">
+                  <p><strong>Description:</strong> {activeMarker.description}</p>
+                  <p><strong>Severity:</strong> {activeMarker.severity}</p>
+                  <p><strong>Tags:</strong> {activeMarker.tags.join(", ")}</p>
+                </div>
+              </InfoWindow>
+            )}
+                </Marker>
+            ))}
+            {newMarker && <Marker position={newMarker.position} />}
+            
+          </GoogleMap>
+        
 
       {/* Marker Details Section */}
       <div className="mt-4 w-full max-w-md">
-        {/* Tags Section */}
         <div className="flex gap-4 mb-4">
-          {["SA", "Harassment", "Crime"].map((tag) => (
+          {["SA", "Harassment", "Sketchy"].map((tag) => (
             <button
               key={tag}
               onClick={() => newMarker && toggleTag(tag)}
@@ -120,7 +181,6 @@ export default function Map() {
           ))}
         </div>
 
-        {/* Severity Section */}
         <div className="flex flex-col items-center mb-4">
           <p className="text-lg font-bold mb-2">Severity</p>
           <div className="flex gap-4">
@@ -145,12 +205,11 @@ export default function Map() {
           </div>
         </div>
 
-        {/* Description Box */}
         <div className="mb-4">
           <p className="text-lg font-bold mb-2">Description</p>
           <textarea
             value={description}
-            onChange={handleDescriptionChange}
+            onChange={(e) => setDescription(e.target.value)}
             placeholder="Describe the incident..."
             rows="3"
             className={`w-full border-2 rounded-lg p-2 ${
@@ -160,7 +219,6 @@ export default function Map() {
           ></textarea>
         </div>
 
-        {/* Submit Button */}
         <button
           onClick={handleSubmit}
           className={`w-full bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded ${
@@ -170,6 +228,35 @@ export default function Map() {
         >
           Submit
         </button>
+
+        <button
+          onClick={fetchPins}
+          className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-4"
+        >
+          Refresh Pins
+        </button>
+      </div>
+
+      <div className="mt-8 w-full max-w-md">
+        <h2 className="text-xl font-bold mb-4">Your Pins</h2>
+        {userPins.map((pin) => (
+          <div
+            key={pin._id}
+            className="flex justify-between items-center p-4 border-b"
+          >
+            <div>
+              <p><strong>Description:</strong> {pin.description}</p>
+              <p><strong>Severity:</strong> {pin.severity}</p>
+              <p><strong>Tags:</strong> {pin.tags.join(", ")}</p>
+            </div>
+            <button
+              onClick={() => handleDeletePin(pin._id)}
+              className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded"
+            >
+              Delete
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );
