@@ -10,7 +10,7 @@ export default function Map() {
   const [currentLocation, setCurrentLocation] = useState({ lat: 0, lng: 0 });
   const [markers, setMarkers] = useState([]); // Stores all markers
   const [newMarker, setNewMarker] = useState(null); // For the new marker being added
-  const [selectedTag, setSelectedTag] = useState(""); // Stores the selected tag
+  const [selectedTags, setSelectedTags] = useState([]); // Stores the selected tags (multiple)
   const [severity, setSeverity] = useState(0); // Stores the selected severity
   const [description, setDescription] = useState(""); // Stores the description
 
@@ -33,13 +33,22 @@ export default function Map() {
   const handleMapClick = (event) => {
     setNewMarker({
       position: { lat: event.latLng.lat(), lng: event.latLng.lng() },
-      tag: "",
+      tags: [],
       severity: 0,
       description: "",
     });
-    setSelectedTag("");
+    setSelectedTags([]);
     setSeverity(0);
     setDescription("");
+  };
+
+  // Handle toggling of tags
+  const toggleTag = (tag) => {
+    if (selectedTags.includes(tag)) {
+      setSelectedTags(selectedTags.filter((t) => t !== tag));
+    } else {
+      setSelectedTags([...selectedTags, tag]);
+    }
   };
 
   // Handle form submission
@@ -49,14 +58,14 @@ export default function Map() {
         ...prev,
         {
           ...newMarker,
-          tag: selectedTag,
+          tags: selectedTags,
           severity,
           description,
         },
       ]);
       // Clear the new marker and inputs
       setNewMarker(null);
-      setSelectedTag("");
+      setSelectedTags([]);
       setSeverity(0);
       setDescription("");
     }
@@ -91,12 +100,12 @@ export default function Map() {
       <div className="mt-4 w-full max-w-md">
         {/* Tags Section */}
         <div className="flex gap-4 mb-4">
-          {["SA", "Harassment"].map((tag) => (
+          {["SA", "Harassment", "Crime"].map((tag) => (
             <button
               key={tag}
-              onClick={() => newMarker && setSelectedTag(tag)}
+              onClick={() => newMarker && toggleTag(tag)}
               className={`px-4 py-2 rounded-full font-bold ${
-                selectedTag === tag
+                selectedTags.includes(tag)
                   ? "bg-blue-700 text-white"
                   : "bg-gray-400 text-black"
               } ${
