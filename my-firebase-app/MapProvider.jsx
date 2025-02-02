@@ -10,9 +10,11 @@ const MapProvider = ({ children }) => {
       googleMapsApiKey={apiKey}
       onLoad={() => setIsLoaded(true)}
     >
-      {React.Children.map(children, (child) =>
+      {
+      React.Children.map(children, (child) =>
         React.cloneElement(child, { isLoaded })
       )}
+
     </LoadScript>
   );
 };

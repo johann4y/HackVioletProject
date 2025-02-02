@@ -13,5 +13,5 @@ export default function Home() {
     }
   }, []);
 
-  return null; // This component will redirect automatically
+  return null;
 }

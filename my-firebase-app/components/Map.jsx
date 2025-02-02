@@ -5,12 +5,12 @@ import axios from "axios";
 
 const containerStyle = {
   width: "100%",
-  height: "400px",
+  height: "500px",
 };
 
 const blueMarkerIcon = "http://maps.google.com/mapfiles/ms/icons/blue-dot.png";
 
-export default function Map({ isLoaded, mapKey }) {
+export default function Map() {
   const [currentLocation, setCurrentLocation] = useState({ lat: 0, lng: 0 });
   const [markers, setMarkers] = useState([]);
   const [newMarker, setNewMarker] = useState(null);
@@ -19,7 +19,7 @@ export default function Map({ isLoaded, mapKey }) {
   const [description, setDescription] = useState("");
   const [userPins, setUserPins] = useState([]);
   const [username, setUsername] = useState(auth.currentUser?.email);
-  const [activeMarker, setActiveMarker] = useState(null); // Tracks the currently hovered marker
+  const [activeMarker, setActiveMarker] = useState(null);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -111,8 +111,11 @@ export default function Map({ isLoaded, mapKey }) {
   const handleDeletePin = async (pinId) => {
     try {
       await axios.delete(`http://localhost:5000/api/pins/${pinId}`, { data: { createdBy: username } });
+
       setMarkers((prev) => prev.filter((pin) => pin._id !== pinId));
+
       setUserPins((prev) => prev.filter((pin) => pin._id !== pinId));
+      
       fetchPins();
     } catch (error) {
       console.error("Error deleting pin:", error);
@@ -149,9 +152,13 @@ export default function Map({ isLoaded, mapKey }) {
         {newMarker && <Marker position={newMarker.position} />}
       </GoogleMap>
 
-      {/* Marker Details Section */}
-      <div className="mt-4 w-full max-w-md">
-        <div className="flex gap-4 mb-4">
+     
+
+      <div className="grid grid-cols-2  gap-10  w-full max-w-[1300px] pt-4">
+      <div className=" w-full  p-4">
+        <h1 className="text-center font-bold text-xl pb-4 underline">Pin Submission Form</h1>
+        <h2 className="text-center text-lg font-bold pb-4">Tags</h2>
+        <div className="flex gap-4 justify-center mb-4">
           {["Assault", "Harassment", "Sketchy", "Crime", "Other"].map((tag) => (
             <button
               key={tag}
@@ -159,11 +166,11 @@ export default function Map({ isLoaded, mapKey }) {
               className={`px-4 py-2 rounded-full font-bold ${
                 selectedTags.includes(tag)
                   ? "bg-blue-700 text-white"
-                  : "bg-gray-400 text-black"
+                  : "bg-gray-200 text-black"
               } ${
                 !newMarker
                   ? "opacity-50 cursor-not-allowed"
-                  : "hover:bg-blue-600"
+                  : "hover:bg-blue-600 hover:text-white"
               }`}
               disabled={!newMarker}
             >
@@ -181,12 +188,12 @@ export default function Map({ isLoaded, mapKey }) {
                 onClick={() => newMarker && setSeverity(value)}
                 className={`w-10 h-10 rounded-full font-bold ${
                   severity === value
-                    ? "bg-red-700 text-white"
-                    : "bg-gray-400 text-black"
+                    ? "bg-red-400 text-white"
+                    : "bg-gray-200 text-black"
                 } ${
                   !newMarker
                     ? "opacity-50 cursor-not-allowed"
-                    : "hover:bg-red-600"
+                    : "hover:bg-red-500 hover:text-white"
                 }`}
                 disabled={!newMarker}
               >
@@ -197,13 +204,13 @@ export default function Map({ isLoaded, mapKey }) {
         </div>
 
         <div className="mb-4">
-          <p className="text-lg font-bold mb-2">Description</p>
+          <p className="text-lg font-bold pb-2 text-white">Description</p>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Describe the incident..."
             rows="3"
-            className={`w-full border-2 rounded-lg p-2 ${
+            className={`w-full border-2 text-white rounded-lg p-2 ${
               !newMarker && "opacity-50 cursor-not-allowed"
             }`}
             disabled={!newMarker}
@@ -219,17 +226,17 @@ export default function Map({ isLoaded, mapKey }) {
         >
           Submit
         </button>
-        <button onClick={fetchPins} className="w-full bg-gray-500 text-white font-bold py-2 px-4 rounded mt-4">
+        <button onClick={fetchPins} className="w-full bg-gray-500 hover:bg-black text-white font-bold py-2 px-4 rounded mt-4">
           Refresh
         </button>
       </div>
 
-      {/* Your Pins Section */}
-      <div className="mt-8 w-full max-w-md">
-        <h2 className="text-xl font-bold mb-4">Your Pins</h2>
+    
+      <div className="w-full  bg-white py-5 rounded-lg px-5">
+        <h2 className="text-xl font-bold pb-5 text-center">Your Markers</h2>
         <div className="bg-white rounded-lg shadow-md border border-gray-300 p-4">
-          {userPins.length === 0 ? (
-            <p className="text-gray-500">No pins created yet.</p>
+          {userPins.length == 0 ? (
+            <p className="text-gray-600 text-center">Create Some Pins!</p>
           ) : (
             userPins.map((pin) => (
               <div
@@ -246,17 +253,22 @@ export default function Map({ isLoaded, mapKey }) {
                   <p>
                     <strong>Tags:</strong> {pin.tags.join(", ")}
                   </p>
+                  <p>
+                    <strong>Created:</strong> {pin.creationDate}
+                  </p>
                 </div>
                 <button
                   onClick={() => handleDeletePin(pin._id)}
-                  className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded"
+                  className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-2 rounded"
                 >
-                  Delete
+                  Delete Pin
                 </button>
               </div>
             ))
           )}
         </div>
+      </div>
+
       </div>
     </div>
   );

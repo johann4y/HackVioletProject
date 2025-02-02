@@ -2,12 +2,12 @@ import { auth } from "../lib/firebase";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { signOut } from "firebase/auth";
-import Map from "../components/Map"; // Import the Map component
+import Map from "../components/Map"; 
 
 export default function Dashboard() {
   const router = useRouter();
   const [user, setUser] = useState(auth.currentUser);
-  const [showDropdown, setShowDropdown] = useState(false); // Controls dropdown visibility
+  const [showDropdown, setShowDropdown] = useState(false); 
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -18,13 +18,13 @@ export default function Dashboard() {
       }
     });
 
-    return () => unsubscribe(); // Cleanup subscription on unmount
+    return () => unsubscribe(); 
   }, [router]);
 
   const handleSignOut = async () => {
     try {
       await signOut(auth);
-      setUser(null); // Reset user state
+      setUser(null); 
       router.push("/login");
     } catch (error) {
       console.error("Error signing out:", error);
@@ -33,38 +33,26 @@ export default function Dashboard() {
 
   return (
     <div className="relative min-h-screen bg-blue-500">
-      {/* Header Section */}
+      
       <div className="fixed top-0 left-0 w-full bg-white shadow-md z-10">
         <div className="flex items-center justify-between p-4">
-          {/* Left Title */}
-          <div className="text-2xl font-bold underline text-gray-800">
-            Athena Spot
+         
+          <div className="text-2xl font-bold flex gap-10">
+            <h1 className="text-gray-800 underline">AthenaSpot</h1>
+            <h2 className="text-blue-500">Welcome, {user?.displayName}!</h2>
           </div>
-
-          {/* Right Profile Section */}
           <div className="relative">
-            <img
-              src={user?.photoURL || "https://via.placeholder.com/40"}
-              alt="Profile"
-              className="w-10 h-10 rounded-full cursor-pointer"
+            <button
+              className="bg-blue-500 px-5 py-3 cursor-pointer text-white font-bold"
               onClick={() => setShowDropdown(!showDropdown)}
-            />
+            >
+              Profile
+            </button>
             {showDropdown && (
-              <div className="absolute right-0 mt-2 bg-white border rounded-lg shadow-lg">
+              <div className="absolute right-0 mt-2 bg-gray-100 rounded-lg shadow-lg">
+                
                 <button
-                  className="block px-4 py-2 text-left w-full hover:bg-gray-200"
-                  onClick={() => alert("Go to Account Page")}
-                >
-                  Account
-                </button>
-                <button
-                  className="block px-4 py-2 text-left w-full hover:bg-gray-200"
-                  onClick={() => alert("Go to Settings Page")}
-                >
-                  Settings
-                </button>
-                <button
-                  className="block px-4 py-2 text-left w-full hover:bg-gray-200 text-red-500"
+                  className="block px-4 py-2 text-left w-full hover:bg-gray-200 font-bold text-red-500"
                   onClick={handleSignOut}
                 >
                   Logout
@@ -75,9 +63,9 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Main Content */}
+     
       <div className="pt-20 w-full max-w-6xl mx-auto p-4">
-        {/* Map Section */}
+        
         {user && <Map mapKey={user.uid} />}
       </div>
     </div>
